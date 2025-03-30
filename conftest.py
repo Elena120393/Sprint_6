@@ -1,3 +1,4 @@
+
 import pytest
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
@@ -13,7 +14,7 @@ def driver():
     """
     # Настройка опций Firefox
     firefox_options = Options()
-    # firefox_options.add_argument("--headless")  # Раскомментируйте для запуска в headless режиме
+
 
     # Создание драйвера
     driver = webdriver.Firefox(options=firefox_options)
@@ -24,5 +25,3 @@ def driver():
 
     # Закрываем драйвер после завершения теста
     driver.quit()
-
-# Удалены проблемные хуки, которые использовали _metadata

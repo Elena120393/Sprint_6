@@ -6,6 +6,7 @@ from pages.order_page import OrderPage
 from data.order_data import ORDER_DATA
 from urls import BASE_URL
 
+
 @allure.epic("Yandex Scooter")
 @allure.feature("Order Process")
 class TestOrder:
@@ -54,13 +55,13 @@ class TestOrder:
             )
 
         with allure.step("Click Order button"):
-            order_page.click_order_button()
+            order_page.click_order_button_center()
 
         with allure.step("Confirm order"):
-            order_page.confirm_order()
+            order_page.click_confirm_order_button()
 
         # Verify the order was successful
-        with allure.step("Verify order success modal is displayed"):
+        with allure.step("Verify order success message"):
             # Take a screenshot of the result
             allure.attach(
                 driver.get_screenshot_as_png(),
@@ -68,11 +69,8 @@ class TestOrder:
                 attachment_type=allure.attachment_type.PNG
             )
 
-            assert order_page.is_order_success_modal_visible(), "Order success modal is not displayed"
-
-            # Verify the order number is present in the success text
-            success_text = order_page.get_order_success_text()
-            assert "Номер заказа:" in success_text, f"Order success text does not contain order number: {success_text}"
+            success_message = order_page.get_order_success_text()
+            assert "Заказ оформлен" in success_message, f"Order success message not found: {success_message}"
 
     @allure.story("Order from bottom button")
     @allure.title("Complete order using bottom button")
@@ -121,13 +119,13 @@ class TestOrder:
             )
 
         with allure.step("Click Order button"):
-            order_page.click_order_button()
+            order_page.click_order_button_center()
 
         with allure.step("Confirm order"):
-            order_page.confirm_order()
+            order_page.click_confirm_order_button()
 
         # Verify the order was successful
-        with allure.step("Verify order success modal is displayed"):
+        with allure.step("Verify order success message"):
             # Take a screenshot of the result
             allure.attach(
                 driver.get_screenshot_as_png(),
@@ -135,8 +133,5 @@ class TestOrder:
                 attachment_type=allure.attachment_type.PNG
             )
 
-            assert order_page.is_order_success_modal_visible(), "Order success modal is not displayed"
-
-            # Verify the order number is present in the success text
-            success_text = order_page.get_order_success_text()
-            assert "Номер заказа:" in success_text, f"Order success text does not contain order number: {success_text}"
+            success_message = order_page.get_order_success_text()
+            assert "Заказ оформлен" in success_message, f"Order success message not found: {success_message}"

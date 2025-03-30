@@ -1,143 +1,142 @@
-
+from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from pages.base_page import BasePage
-from locators.order_locators import OrderLocators
+import allure
+from selenium.webdriver.common.keys import Keys
 
 
 class OrderPage(BasePage):
+    @allure.step("Инициализация страницы заказа")
     def __init__(self, driver):
         super().__init__(driver)
-        self.locators = OrderLocators()
+        from locators.order_page_locators import OrderPageLocators
+        self.locators = OrderPageLocators()
 
+    @allure.step("Заполнить личные данные")
     def fill_personal_info(self, name, surname, address, metro_station, phone):
         """
-        Заполнить форму с персональными данными.
+        Заполнить форму с личными данными заказчика
         """
-        # Заполняем поле имени
         self.send_keys(self.locators.NAME_INPUT, name)
-
-        # Заполняем поле фамилии
         self.send_keys(self.locators.SURNAME_INPUT, surname)
-
-        # Заполняем поле адреса
         self.send_keys(self.locators.ADDRESS_INPUT, address)
-
-        # Заполняем поле станции метро и выбираем из списка
-        metro_input = self.find_element(self.locators.METRO_STATION_INPUT)
-        metro_input.click()
-        metro_input.send_keys(metro_station)
-
-        # Ждем, пока появится выпадающий список с вариантами станций
-        # Пробуем несколько вариантов локаторов для выбора станции метро
-        metro_option_locators = [
-            # Вариант 1: поиск по точному тексту
-            (By.XPATH, self.locators.METRO_STATION_OPTION_EXACT[1].format(metro_station)),
-            # Вариант 2: поиск по содержанию текста
-            (By.XPATH, self.locators.METRO_STATION_OPTION_CONTAINS[1].format(metro_station)),
-            # Вариант 3: поиск по li элементам
-            (By.XPATH, self.locators.METRO_STATION_OPTION_LI[1].format(metro_station)),
-            # Вариант 4: поиск первого элемента в выпадающем списке
-            self.locators.METRO_STATION_FIRST_OPTION
-        ]
-
-        # Пробуем каждый локатор по очереди
-        for locator in metro_option_locators:
-            try:
-                if self.is_element_visible(locator, timeout=2):
-                    self.click_element(locator)
-                    break
-            except Exception:
-                continue
-
-        # Если не удалось выбрать станцию через клик, пробуем через Enter
-        if not self.is_element_visible(self.locators.NEXT_BUTTON, timeout=1):
-            metro_input.send_keys(Keys.ENTER)
-
-        # Заполняем поле телефона
+        self._select_metro_station(metro_station)
         self.send_keys(self.locators.PHONE_INPUT, phone)
 
+    @allure.step("Выбрать станцию метро: {station_name}")
+    def _select_metro_station(self, station_name):
+        """
+        Выбрать станцию метро из выпадающего списка
+        """
+        self.click_element(self.locators.METRO_STATION_INPUT)
+        self.send_keys(self.locators.METRO_STATION_INPUT, station_name)
+        self.click_element(self.locators.METRO_STATION_OPTION)
+
+    @allure.step("Нажать кнопку 'Далее'")
     def click_next_button(self):
         """
-        Нажать кнопку "Далее".
+        Нажать кнопку "Далее" для перехода к следующему шагу заказа
         """
         self.click_element(self.locators.NEXT_BUTTON)
 
-    def fill_rental_info(self, delivery_date, rental_period, color, comment):
+    @allure.step("Заполнить детали аренды")
+    def fill_rental_info(self, delivery_date, rental_period, color, comment=None):
         """
-        Заполнить форму с информацией об аренде.
+        Заполнить форму с деталями аренды самоката
         """
-        # Заполняем поле даты доставки
-        date_input = self.find_element(self.locators.DELIVERY_DATE_INPUT)
-        date_input.click()
-        date_input.send_keys(Keys.CONTROL + "a")  # Выделяем весь текст
-        date_input.send_keys(delivery_date)  # Вводим новую дату
-        date_input.send_keys(Keys.ENTER)  # Нажимаем Enter для подтверждения
-
-        # Выбираем срок аренды
-        self.click_element(self.locators.RENTAL_PERIOD_DROPDOWN)
-
-        # Формируем локатор для конкретного периода аренды
-        period_option_locator = (
-            By.XPATH,
-            self.locators.RENTAL_PERIOD_OPTION[1].format(rental_period)
-        )
-
-        # Ждем появления элемента и кликаем по нему
-        self.wait_for_element_visible(period_option_locator)
-        self.click_element(period_option_locator)
-
-        # Выбираем цвет самоката на основе переданного значения
-        color_id = self._get_color_id(color)
-        # Исправлено: используем прямой XPath вместо COLOR_CHECKBOX
-        color_checkbox_locator = (By.XPATH, f"//*[@id='{color_id}']")
-
-        # Кликаем по чекбоксу цвета
-        self.click_element(color_checkbox_locator)
-
-        # Заполняем поле комментария
+        self._set_delivery_date(delivery_date)
+        self._select_rental_period(rental_period)
+        self._select_scooter_color(color)
         if comment:
             self.send_keys(self.locators.COMMENT_INPUT, comment)
 
-    def _get_color_id(self, color_name):
+    @allure.step("Установить дату доставки: {date}")
+    def _set_delivery_date(self, date):
         """
-        Получить ID чекбокса цвета на основе названия цвета.
+        Установить дату доставки самоката
         """
-        # Используем словарь соответствия из локаторов
-        return self.locators.COLOR_MAPPING.get(color_name, color_name)
+        date_field = self.find_element(self.locators.DELIVERY_DATE_INPUT)
+        date_field.send_keys(Keys.CONTROL + "a")
+        date_field.send_keys(date)
+        date_field.send_keys(Keys.ENTER)
 
+    @allure.step("Выбрать срок аренды: {period}")
+    def _select_rental_period(self, period):
+        """
+        Выбрать срок аренды самоката из выпадающего списка
+        """
+        self.click_element(self.locators.RENTAL_PERIOD_DROPDOWN)
+        period_locator = (
+            self.locators.RENTAL_PERIOD_OPTION[0],
+            self.locators.RENTAL_PERIOD_OPTION[1].format(period)
+        )
+        self.click_element(period_locator)
+
+    @allure.step("Выбрать цвет самоката: {color}")
+    def _select_scooter_color(self, color):
+        """
+        Выбрать цвет самоката, используя словарь соответствия цветов
+        """
+        color_id = self.locators.COLOR_MAPPING.get(color.lower())
+        if not color_id:
+            raise ValueError(f"Неизвестный цвет: {color}")
+
+        color_locator = (By.ID, color_id)
+        self.click_element(color_locator)
+
+    @allure.step("Нажать кнопку 'Заказать'")
     def click_order_button(self):
         """
-        Нажать кнопку "Заказать" на форме заказа.
+        Нажать кнопку "Заказать" после заполнения формы
         """
-        self.click_element(self.locators.ORDER_SUBMIT_BUTTON)
+        self.click_element(self.locators.ORDER_BUTTON )
 
+    @allure.step("Нажать кнопку 'Заказать' (центральная)")
+    def click_order_button_center(self):
+        """
+        Нажать кнопку "Заказать" после заполнения формы (центральная кнопка)
+        """
+        self.click_element(self.locators.ORDER_BUTTON )
+
+    @allure.step("Подтвердить заказ")
     def confirm_order(self):
         """
-        Подтвердить заказ в модальном окне.
+        Подтвердить заказ в модальном окне
         """
+        # Ожидаем появления модального окна
+        self.wait_for_element_visible(self.locators.CONFIRM_ORDER_BUTTON)
         self.click_element(self.locators.CONFIRM_ORDER_BUTTON)
 
-    def is_order_success_modal_visible(self):
+    @allure.step("Нажать кнопку подтверждения заказа")
+    def click_confirm_order_button(self):
         """
-        Проверить, видно ли модальное окно успешного заказа.
+        Нажать кнопку подтверждения заказа в модальном окне
         """
-        return self.is_element_visible(self.locators.ORDER_SUCCESS_MODAL)
+        self.wait_for_element_visible(self.locators.CONFIRM_ORDER_BUTTON)
+        self.click_element(self.locators.CONFIRM_ORDER_BUTTON)
 
+    @allure.step("Проверить видимость модального окна успешного заказа")
+    def is_order_success_modal_visible(self, timeout=5):
+        """
+        Проверяет, отображается ли модальное окно успешного заказа
+        :param timeout: время ожидания в секундах
+        :return: True если окно видимо, False если не видимо
+        """
+        return self.is_element_visible(self.locators.ORDER_SUCCESS_MODAL, timeout=timeout)
+
+    @allure.step("Получить текст успешного заказа")
     def get_order_success_text(self):
         """
-        Получить текст из модального окна успешного заказа.
+        Получить текст сообщения об успешном заказе
         """
         return self.get_element_text(self.locators.ORDER_SUCCESS_TEXT)
 
-    def wait_for_element_visible(self, locator, timeout=10):
+    @allure.step("Получить номер заказа")
+    def get_order_number(self):
         """
-        Ожидать, пока элемент станет видимым.
+        Извлечь номер заказа из текста успешного заказа
         """
-        from selenium.webdriver.support import expected_conditions as EC
-        from selenium.webdriver.support.ui import WebDriverWait
-
-        return WebDriverWait(self.driver, timeout).until(
-            EC.visibility_of_element_located(locator),
-            message=f"Элемент не стал видимым с локатором: {locator}"
-        )
+        success_text = self.get_order_success_text()
+        if "Номер заказа:" in success_text:
+            return success_text.split("Номер заказа:")[1].strip()
+        return None
